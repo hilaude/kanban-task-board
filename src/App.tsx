@@ -18,12 +18,9 @@ import type {
 } from "./types/task";
 import {
   loadArchiveViewMode,
-  loadStoredTasks,
-  loadSupabaseMigrationDone,
   loadTasks,
   loadViewMode,
   saveArchiveViewMode,
-  saveSupabaseMigrationDone,
   saveTasks,
   saveViewMode,
 } from "./utils/storage";
@@ -53,12 +50,7 @@ function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [isTasksLoading, setIsTasksLoading] = useState(false);
-  const [isMigrating, setIsMigrating] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  const [localTasksForMigration, setLocalTasksForMigration] = useState<Task[]>(
-    () => loadStoredTasks(),
-  );
-  const [isMigrationDone, setIsMigrationDone] = useState(false);
   const [tasks, setTasks] = useState<Task[]>(() => loadTasks());
   const [viewMode, setViewMode] = useState<ViewMode>(() => loadViewMode());
   const [archiveViewMode, setArchiveViewMode] = useState<ArchiveViewMode>(() =>
@@ -99,8 +91,6 @@ function App() {
 
     setIsTasksLoading(true);
     setErrorMessage("");
-    setLocalTasksForMigration(loadStoredTasks());
-    setIsMigrationDone(loadSupabaseMigrationDone(session.user.id));
 
     taskService
       .fetchTasks(session.user.id)
@@ -152,12 +142,6 @@ function App() {
     () => uniqueValues(tasks.map((task) => task.category)),
     [tasks],
   );
-
-  const canMigrateLocalTasks =
-    Boolean(userId) &&
-    tasks.length === 0 &&
-    localTasksForMigration.length > 0 &&
-    !isMigrationDone;
 
   const requireLogin = () => {
     if (!userId) {
@@ -296,38 +280,6 @@ function App() {
     }
   };
 
-  const migrateLocalTasks = async () => {
-    if (!requireLogin() || !canMigrateLocalTasks) return;
-
-    setIsMigrating(true);
-    setErrorMessage("");
-
-    try {
-      const migratedTasks = await Promise.all(
-        localTasksForMigration.map((task) =>
-          taskService.createTask(
-            {
-              ...task,
-              archived: task.archived ?? false,
-            },
-            userId,
-          ),
-        ),
-      );
-      setTasks(migratedTasks);
-      saveSupabaseMigrationDone(userId);
-      setIsMigrationDone(true);
-    } catch (error) {
-      setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : "この端末のタスク移行に失敗しました。",
-      );
-    } finally {
-      setIsMigrating(false);
-    }
-  };
-
   const logout = async () => {
     if (!supabase) return;
     const { error } = await supabase.auth.signOut();
@@ -442,22 +394,6 @@ function App() {
         {supabaseConfigError && (
           <div className="mt-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">
             {supabaseConfigError}
-          </div>
-        )}
-
-        {canMigrateLocalTasks && (
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-800">
-            <span>
-              この端末に保存されたタスクを同期へ移行できます。
-            </span>
-            <button
-              className="h-9 rounded-md bg-blue-600 px-3 text-sm font-bold text-white hover:bg-blue-700 disabled:bg-slate-300"
-              type="button"
-              disabled={isMigrating}
-              onClick={migrateLocalTasks}
-            >
-              {isMigrating ? "移行中..." : "この端末のタスクを同期に移行"}
-            </button>
           </div>
         )}
 
