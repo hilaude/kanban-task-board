@@ -2,6 +2,8 @@ export type TaskPriority = "high" | "medium" | "low";
 
 export type TaskStatus = "todo" | "doing" | "waiting" | "done" | "hold";
 
+export type TaskColor = "white" | "green" | "yellow" | "red" | "gray";
+
 export type ViewMode = "kanban" | "list";
 
 export type ArchiveViewMode = "active" | "archived";
@@ -15,6 +17,7 @@ export type Task = {
   category: string;
   tags: string[];
   status: TaskStatus;
+  color?: TaskColor;
   archived?: boolean;
   createdAt: string;
   updatedAt: string;
@@ -30,6 +33,7 @@ export type TaskRow = {
   category: string;
   tags: string[];
   status: TaskStatus;
+  color?: TaskColor | null;
   archived: boolean;
   created_at: string;
   updated_at: string;
@@ -63,4 +67,12 @@ export const TASK_PRIORITIES: Array<{ value: TaskPriority; label: string }> = [
   { value: "high", label: "高" },
   { value: "medium", label: "中" },
   { value: "low", label: "低" },
+];
+
+export const TASK_COLORS: Array<{ value: TaskColor; label: string }> = [
+  { value: "white", label: "白" },
+  { value: "green", label: "緑" },
+  { value: "yellow", label: "黄" },
+  { value: "red", label: "赤" },
+  { value: "gray", label: "灰" },
 ];
