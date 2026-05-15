@@ -8,10 +8,21 @@ create table if not exists public.tasks (
   category text not null default '',
   tags text[] not null default '{}',
   status text not null check (status in ('todo', 'doing', 'waiting', 'done', 'hold')),
+  color text not null default 'white' check (color in ('white', 'green', 'yellow', 'red', 'gray')),
   archived boolean not null default false,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.tasks
+add column if not exists color text not null default 'white';
+
+alter table public.tasks
+drop constraint if exists tasks_color_check;
+
+alter table public.tasks
+add constraint tasks_color_check
+check (color in ('white', 'green', 'yellow', 'red', 'gray'));
 
 create index if not exists tasks_user_id_idx on public.tasks (user_id);
 create index if not exists tasks_user_archived_idx on public.tasks (user_id, archived);
