@@ -23,7 +23,6 @@ https://hilaude.github.io/kanban-task-board/
 - タスク名検索
 - 優先度、カテゴリでのフィルター
 - リストビューのソート
-- 旧localStorageデータの手動移行
 
 ## 使用技術
 
@@ -97,9 +96,7 @@ git push -u origin main
 ## データ保存方式
 
 ログイン後のタスクはSupabaseの `tasks` テーブルに保存されます。
-
-過去にlocalStorageへ保存していたタスクがあり、かつSupabase側のタスクが0件の場合だけ、画面上に「この端末のタスクを同期に移行」ボタンが表示されます。
-移行後も安全のため、localStorage内の元データはすぐには削除しません。
+ログイン後はSupabase上のデータを正として扱います。
 
 ## 注意事項
 
