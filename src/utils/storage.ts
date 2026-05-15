@@ -5,6 +5,8 @@ export const STORAGE_KEY = "kanban-task-board-tasks";
 export const VIEW_MODE_STORAGE_KEY = "kanban-task-board-view-mode";
 export const ARCHIVE_VIEW_MODE_STORAGE_KEY =
   "kanban-task-board-archive-view-mode";
+export const SUPABASE_MIGRATION_STORAGE_KEY =
+  "kanban-task-board-supabase-migrated";
 
 export const loadTasks = (): Task[] => {
   try {
@@ -20,11 +22,47 @@ export const loadTasks = (): Task[] => {
   }
 };
 
+export const loadStoredTasks = (): Task[] => {
+  try {
+    const stored = window.localStorage.getItem(STORAGE_KEY);
+    if (!stored) return [];
+
+    const parsed = JSON.parse(stored);
+    return Array.isArray(parsed) ? (parsed as Task[]) : [];
+  } catch (error) {
+    console.warn("この端末の保存済みタスクを読み込めませんでした。", error);
+    return [];
+  }
+};
+
 export const saveTasks = (tasks: Task[]): void => {
   try {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
   } catch (error) {
     console.warn("タスクの保存に失敗しました。", error);
+  }
+};
+
+export const loadSupabaseMigrationDone = (userId: string): boolean => {
+  try {
+    return (
+      window.localStorage.getItem(`${SUPABASE_MIGRATION_STORAGE_KEY}:${userId}`) ===
+      "true"
+    );
+  } catch (error) {
+    console.warn("同期移行フラグを読み込めませんでした。", error);
+    return false;
+  }
+};
+
+export const saveSupabaseMigrationDone = (userId: string): void => {
+  try {
+    window.localStorage.setItem(
+      `${SUPABASE_MIGRATION_STORAGE_KEY}:${userId}`,
+      "true",
+    );
+  } catch (error) {
+    console.warn("同期移行フラグを保存できませんでした。", error);
   }
 };
 

@@ -1,9 +1,13 @@
+import type { Session } from "@supabase/supabase-js";
 import { useEffect, useMemo, useState } from "react";
+import { AuthPanel } from "./components/AuthPanel";
 import { Board } from "./components/Board";
 import { FilterBar } from "./components/FilterBar";
 import { ListView } from "./components/ListView";
 import { TaskModal } from "./components/TaskModal";
 import { ViewToggle } from "./components/ViewToggle";
+import { supabase, supabaseConfigError } from "./lib/supabase";
+import * as taskService from "./services/taskService";
 import type {
   ArchiveViewMode,
   Filters,
@@ -14,9 +18,12 @@ import type {
 } from "./types/task";
 import {
   loadArchiveViewMode,
+  loadStoredTasks,
+  loadSupabaseMigrationDone,
   loadTasks,
   loadViewMode,
   saveArchiveViewMode,
+  saveSupabaseMigrationDone,
   saveTasks,
   saveViewMode,
 } from "./utils/storage";
@@ -39,7 +46,19 @@ const uniqueValues = (values: string[]): string[] =>
     a.localeCompare(b, "ja"),
   );
 
+const replaceTask = (tasks: Task[], updatedTask: Task): Task[] =>
+  tasks.map((task) => (task.id === updatedTask.id ? updatedTask : task));
+
 function App() {
+  const [session, setSession] = useState<Session | null>(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const [isTasksLoading, setIsTasksLoading] = useState(false);
+  const [isMigrating, setIsMigrating] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [localTasksForMigration, setLocalTasksForMigration] = useState<Task[]>(
+    () => loadStoredTasks(),
+  );
+  const [isMigrationDone, setIsMigrationDone] = useState(false);
   const [tasks, setTasks] = useState<Task[]>(() => loadTasks());
   const [viewMode, setViewMode] = useState<ViewMode>(() => loadViewMode());
   const [archiveViewMode, setArchiveViewMode] = useState<ArchiveViewMode>(() =>
@@ -49,9 +68,56 @@ function App() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
+  const userId = session?.user.id ?? "";
+
   useEffect(() => {
-    saveTasks(tasks);
-  }, [tasks]);
+    if (!supabase) {
+      setIsAuthLoading(false);
+      return;
+    }
+
+    supabase.auth
+      .getSession()
+      .then(({ data, error }) => {
+        if (error) setErrorMessage(error.message);
+        setSession(data.session);
+      })
+      .finally(() => setIsAuthLoading(false));
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      setSession(nextSession);
+      setErrorMessage("");
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (!session?.user) return;
+
+    setIsTasksLoading(true);
+    setErrorMessage("");
+    setLocalTasksForMigration(loadStoredTasks());
+    setIsMigrationDone(loadSupabaseMigrationDone(session.user.id));
+
+    taskService
+      .fetchTasks(session.user.id)
+      .then(setTasks)
+      .catch((error: unknown) => {
+        setErrorMessage(
+          error instanceof Error
+            ? error.message
+            : "タスクの取得に失敗しました。",
+        );
+      })
+      .finally(() => setIsTasksLoading(false));
+  }, [session]);
+
+  useEffect(() => {
+    if (!session) saveTasks(tasks);
+  }, [session, tasks]);
 
   useEffect(() => {
     saveViewMode(viewMode);
@@ -87,6 +153,20 @@ function App() {
     [tasks],
   );
 
+  const canMigrateLocalTasks =
+    Boolean(userId) &&
+    tasks.length === 0 &&
+    localTasksForMigration.length > 0 &&
+    !isMigrationDone;
+
+  const requireLogin = () => {
+    if (!userId) {
+      setErrorMessage("ログイン状態を確認できません。もう一度ログインしてください。");
+      return false;
+    }
+    return true;
+  };
+
   const openNewTask = () => {
     setSelectedTask(null);
     setIsModalOpen(true);
@@ -102,92 +182,183 @@ function App() {
     setIsModalOpen(false);
   };
 
-  const saveTask = (values: TaskFormValues) => {
+  const saveTask = async (values: TaskFormValues) => {
+    if (!requireLogin()) return;
+
     const now = new Date().toISOString();
+    setErrorMessage("");
 
-    if (selectedTask) {
-      setTasks((current) =>
-        current.map((task) =>
-          task.id === selectedTask.id
-            ? { ...task, ...values, updatedAt: now }
-            : task,
-        ),
-      );
-    } else {
-      setTasks((current) => [
-        {
+    try {
+      if (selectedTask) {
+        const updatedTask = await taskService.updateTask({
+          ...selectedTask,
           ...values,
-          id: createId(),
-          archived: false,
-          createdAt: now,
           updatedAt: now,
-        },
-        ...current,
-      ]);
+        });
+        setTasks((current) => replaceTask(current, updatedTask));
+      } else {
+        const createdTask = await taskService.createTask(
+          {
+            ...values,
+            id: createId(),
+            archived: false,
+            createdAt: now,
+            updatedAt: now,
+          },
+          userId,
+        );
+        setTasks((current) => [createdTask, ...current]);
+      }
+      closeModal();
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error ? error.message : "タスク保存に失敗しました。",
+      );
     }
-
-    closeModal();
   };
 
-  const deleteTask = (taskId: string) => {
+  const deleteTask = async (taskId: string) => {
     const task = tasks.find((item) => item.id === taskId);
     if (!task) return;
     if (!window.confirm(`「${task.title}」を削除しますか？`)) return;
 
-    setTasks((current) => current.filter((item) => item.id !== taskId));
+    setErrorMessage("");
+    try {
+      await taskService.deleteTask(taskId);
+      setTasks((current) => current.filter((item) => item.id !== taskId));
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error ? error.message : "タスク削除に失敗しました。",
+      );
+    }
   };
 
-  const duplicateTask = (taskId: string) => {
-    const now = new Date().toISOString();
+  const duplicateTask = async (taskId: string) => {
+    if (!requireLogin()) return;
 
-    setTasks((current) => {
-      const source = current.find((task) => task.id === taskId);
-      if (!source) return current;
+    const source = tasks.find((task) => task.id === taskId);
+    if (!source) return;
 
-      return [
-        {
-          ...source,
-          id: createId(),
-          title: `${source.title} のコピー`,
-          archived: false,
-          createdAt: now,
-          updatedAt: now,
-        },
-        ...current,
-      ];
-    });
+    setErrorMessage("");
+    try {
+      const duplicatedTask = await taskService.duplicateTask(source, userId);
+      setTasks((current) => [duplicatedTask, ...current]);
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error ? error.message : "タスク複製に失敗しました。",
+      );
+    }
   };
 
-  const archiveTask = (taskId: string) => {
-    setTasks((current) =>
-      current.map((task) =>
-        task.id === taskId && task.status === "done"
-          ? { ...task, archived: true, updatedAt: new Date().toISOString() }
-          : task,
-      ),
+  const archiveTask = async (taskId: string) => {
+    setErrorMessage("");
+    try {
+      const archivedTask = await taskService.archiveTask(taskId);
+      setTasks((current) => replaceTask(current, archivedTask));
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error ? error.message : "アーカイブに失敗しました。",
+      );
+    }
+  };
+
+  const restoreTask = async (taskId: string) => {
+    setErrorMessage("");
+    try {
+      const restoredTask = await taskService.restoreTask(taskId);
+      setTasks((current) => replaceTask(current, restoredTask));
+      setArchiveViewMode("active");
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error ? error.message : "復元に失敗しました。",
+      );
+    }
+  };
+
+  const moveTask = async (taskId: string, status: TaskStatus) => {
+    const source = tasks.find((task) => task.id === taskId);
+    if (!source || source.status === status) return;
+
+    setErrorMessage("");
+    try {
+      const updatedTask = await taskService.updateTask({
+        ...source,
+        status,
+        updatedAt: new Date().toISOString(),
+      });
+      setTasks((current) => replaceTask(current, updatedTask));
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "ステータス変更に失敗しました。",
+      );
+    }
+  };
+
+  const migrateLocalTasks = async () => {
+    if (!requireLogin() || !canMigrateLocalTasks) return;
+
+    setIsMigrating(true);
+    setErrorMessage("");
+
+    try {
+      const migratedTasks = await Promise.all(
+        localTasksForMigration.map((task) =>
+          taskService.createTask(
+            {
+              ...task,
+              archived: task.archived ?? false,
+            },
+            userId,
+          ),
+        ),
+      );
+      setTasks(migratedTasks);
+      saveSupabaseMigrationDone(userId);
+      setIsMigrationDone(true);
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "この端末のタスク移行に失敗しました。",
+      );
+    } finally {
+      setIsMigrating(false);
+    }
+  };
+
+  const logout = async () => {
+    if (!supabase) return;
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      setErrorMessage(error.message);
+      return;
+    }
+    setTasks(loadTasks());
+    setSession(null);
+  };
+
+  if (isAuthLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-slate-50 text-sm font-semibold text-slate-600">
+        ログイン状態を確認しています...
+      </div>
     );
-  };
+  }
 
-  const restoreTask = (taskId: string) => {
-    setTasks((current) =>
-      current.map((task) =>
-        task.id === taskId
-          ? { ...task, archived: false, updatedAt: new Date().toISOString() }
-          : task,
-      ),
+  if (!session) {
+    return (
+      <>
+        <AuthPanel onError={setErrorMessage} />
+        {errorMessage && (
+          <div className="fixed inset-x-4 bottom-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700 shadow-lg">
+            {errorMessage}
+          </div>
+        )}
+      </>
     );
-    setArchiveViewMode("active");
-  };
-
-  const moveTask = (taskId: string, status: TaskStatus) => {
-    setTasks((current) =>
-      current.map((task) =>
-        task.id === taskId && task.status !== status
-          ? { ...task, status, updatedAt: new Date().toISOString() }
-          : task,
-      ),
-    );
-  };
+  }
 
   return (
     <div className="flex h-screen flex-col bg-slate-50 text-slate-800">
@@ -201,7 +372,11 @@ function App() {
               {filteredTasks.length} / {archiveScopedTasks.length} 件を表示
             </p>
             <p className="mt-1 text-xs font-semibold text-slate-600">
-              表示対象: {archiveViewMode === "archived" ? "アーカイブ" : "通常"}
+              表示対象:{" "}
+              {archiveViewMode === "archived" ? "アーカイブ" : "通常"}
+            </p>
+            <p className="mt-1 text-xs text-slate-500">
+              ログイン中: {session.user.email}
             </p>
           </div>
 
@@ -248,8 +423,44 @@ function App() {
                 タスク追加
               </button>
             )}
+            <button
+              className="h-9 rounded-md border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+              type="button"
+              onClick={logout}
+            >
+              ログアウト
+            </button>
           </div>
         </div>
+
+        {errorMessage && (
+          <div className="mt-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">
+            {errorMessage}
+          </div>
+        )}
+
+        {supabaseConfigError && (
+          <div className="mt-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">
+            {supabaseConfigError}
+          </div>
+        )}
+
+        {canMigrateLocalTasks && (
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-800">
+            <span>
+              この端末に保存されたタスクを同期へ移行できます。
+            </span>
+            <button
+              className="h-9 rounded-md bg-blue-600 px-3 text-sm font-bold text-white hover:bg-blue-700 disabled:bg-slate-300"
+              type="button"
+              disabled={isMigrating}
+              onClick={migrateLocalTasks}
+            >
+              {isMigrating ? "移行中..." : "この端末のタスクを同期に移行"}
+            </button>
+          </div>
+        )}
+
         {archiveViewMode === "archived" && (
           <div className="mt-3 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-600">
             アーカイブ済みタスクを表示中
@@ -257,7 +468,11 @@ function App() {
         )}
       </header>
 
-      {archiveViewMode === "archived" ? (
+      {isTasksLoading ? (
+        <main className="flex min-h-0 flex-1 items-center justify-center text-sm font-semibold text-slate-500">
+          タスクを読み込んでいます...
+        </main>
+      ) : archiveViewMode === "archived" ? (
         <ListView
           tasks={filteredTasks}
           onEdit={openEditTask}

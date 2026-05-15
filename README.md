@@ -1,16 +1,18 @@
 # Kanban Task Board
 
-React / TypeScript / Vite / Tailwind CSSで作成した、個人利用向けのシンプルなタスク管理アプリです。
+React / TypeScript / Vite / Tailwind CSSで作った、自分用のシンプルなタスク管理アプリです。
 カンバンビューとリストビューを切り替えながら、タスクの追加、編集、削除、複製、完了タスクのアーカイブ管理ができます。
 
 ## 公開URL
 
-GitHub Pagesで公開する場合のURLです。
+GitHub Pages:
 
 https://hilaude.github.io/kanban-task-board/
 
 ## 主な機能
 
+- Supabase Authによるメール/パスワードログイン
+- Supabase Freeを使ったブラウザ間・端末間同期
 - カンバンビュー
 - リストビュー
 - ビュー切り替え
@@ -21,7 +23,7 @@ https://hilaude.github.io/kanban-task-board/
 - タスク名検索
 - 優先度、カテゴリでのフィルター
 - リストビューのソート
-- localStorageへの自動保存
+- 旧localStorageデータの手動移行
 
 ## 使用技術
 
@@ -29,7 +31,10 @@ https://hilaude.github.io/kanban-task-board/
 - TypeScript
 - Vite
 - Tailwind CSS
-- localStorage
+- Supabase Auth
+- Supabase Database
+- GitHub Pages
+- GitHub Actions
 
 ## セットアップ
 
@@ -37,13 +42,20 @@ https://hilaude.github.io/kanban-task-board/
 npm install
 ```
 
+`.env.local` を作成し、Supabaseの接続情報を設定します。
+
+```env
+VITE_SUPABASE_URL=https://xxxxxxxx.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-key
+```
+
+`service_role` keyはフロントエンドに入れないでください。
+
 ## 起動方法
 
 ```bash
 npm run dev
 ```
-
-表示されたURLをブラウザで開いてください。
 
 ## ビルド方法
 
@@ -51,40 +63,56 @@ npm run dev
 npm run build
 ```
 
-ビルド後の確認をする場合は、以下を実行します。
+ビルド後の確認:
 
 ```bash
 npm run preview
 ```
 
-## GitHub Pagesへの公開
+## Supabase設定
 
-`main` または `master` ブランチにpushすると、GitHub Actionsで自動ビルドされ、GitHub Pagesへ公開されます。
-GitHub側の Pages 設定で、公開元は `GitHub Actions` を選択してください。
+Supabase SQL Editorで `supabase/schema.sql` を実行してください。
+
+このアプリは `tasks.user_id` と `auth.uid()` をRLSで照合し、ログイン中の本人のタスクだけを読み書きします。
+
+## GitHub Pages公開
+
+`main` ブランチにpushすると、GitHub Actionsで自動ビルドされ、GitHub Pagesへ公開されます。
+
+GitHubのリポジトリ設定で、以下のSecretsを登録してください。
+
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_ANON_KEY`
+
+GitHub PagesのSourceは `GitHub Actions` を選択してください。
+
+ローカルから反映する場合:
+
+```bash
+git remote add origin https://github.com/hilaude/kanban-task-board.git
+git branch -M main
+git push -u origin main
+```
 
 ## データ保存方式
 
-データはブラウザのlocalStorageに保存されます。
-同じブラウザではリロード後もタスクが残りますが、別端末や別ブラウザとの同期はまだできません。
+ログイン後のタスクはSupabaseの `tasks` テーブルに保存されます。
 
-## Supabase同期の予定
+過去にlocalStorageへ保存していたタスクがあり、かつSupabase側のタスクが0件の場合だけ、画面上に「この端末のタスクを同期に移行」ボタンが表示されます。
+移行後も安全のため、localStorage内の元データはすぐには削除しません。
 
-今後、Supabase Freeを使ってブラウザ間・デバイス間同期を追加する予定です。
-その場合も、`service_role` keyはフロントエンドに入れず、Viteの公開環境変数にはSupabase URLとanon keyだけを設定します。
-まずはログインありの個人利用を前提に、タスクを自分のユーザーIDに紐づけて保存する方針です。
+## 注意事項
+
+- このアプリは自分1人で使う前提です。
+- Realtime購読はまだ入れていません。
+- GitHub Pagesで公開する場合、Supabase URLとanon keyは公開されますが、RLSで本人のデータだけ扱えるようにします。
+- `.env` と `.env.local` はGitHubにコミットしません。
+- `service_role` keyは絶対にフロントエンドやGitHub SecretsのPagesビルド用途に入れないでください。
 
 ## 今後の追加候補
 
-- Supabaseを使ったデータ同期
+- Realtime同期
 - JSONバックアップ / 復元
 - CSVエクスポート
 - タスク詳細画面
 - カンバン列内の並び替え
-- 期限切れ件数の集計表示
-
-## 注意事項
-
-- 現時点では自分用のMVPです。
-- ログイン機能やバックエンド連携はまだありません。
-- localStorageを削除すると保存済みタスクも消えます。
-- `.env` や `.env.local` はGitHubにコミットしません。

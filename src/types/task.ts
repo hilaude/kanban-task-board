@@ -20,6 +20,29 @@ export type Task = {
   updatedAt: string;
 };
 
+export type TaskRow = {
+  id: string;
+  user_id: string;
+  title: string;
+  description: string;
+  due_date: string | null;
+  priority: TaskPriority;
+  category: string;
+  tags: string[];
+  status: TaskStatus;
+  archived: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type TaskInsert = TaskRow;
+
+export type TaskUpdate = Partial<
+  Omit<TaskRow, "id" | "user_id" | "created_at">
+> & {
+  updated_at: string;
+};
+
 export type Filters = {
   query: string;
   priority: "all" | TaskPriority;
