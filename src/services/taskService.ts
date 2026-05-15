@@ -14,6 +14,7 @@ export const dbTaskToTask = (row: TaskRow): Task => ({
   category: row.category ?? "",
   tags: row.tags ?? [],
   status: row.status,
+  color: row.color ?? "white",
   archived: row.archived ?? false,
   createdAt: row.created_at,
   updatedAt: row.updated_at,
@@ -29,6 +30,7 @@ export const taskToDbInsert = (task: Task, userId: string): TaskInsert => ({
   category: task.category,
   tags: task.tags,
   status: task.status,
+  color: task.color ?? "white",
   archived: task.archived ?? false,
   created_at: task.createdAt,
   updated_at: task.updatedAt,
@@ -42,6 +44,7 @@ export const taskToDbUpdate = (task: Task): TaskUpdate => ({
   category: task.category,
   tags: task.tags,
   status: task.status,
+  color: task.color ?? "white",
   archived: task.archived ?? false,
   updated_at: task.updatedAt,
 });
