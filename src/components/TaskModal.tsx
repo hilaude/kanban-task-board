@@ -1,7 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
-import type { Task, TaskFormValues, TaskPriority, TaskStatus } from "../types/task";
-import { TASK_PRIORITIES, TASK_STATUSES } from "../types/task";
+import type {
+  Task,
+  TaskColor,
+  TaskFormValues,
+  TaskPriority,
+  TaskStatus,
+} from "../types/task";
+import { TASK_COLORS, TASK_PRIORITIES, TASK_STATUSES } from "../types/task";
 
 type TaskModalProps = {
   task: Task | null;
@@ -18,6 +24,15 @@ const emptyValues: TaskFormValues = {
   category: "",
   tags: [],
   status: "todo",
+  color: "white",
+};
+
+const colorSwatchClasses: Record<TaskColor, string> = {
+  white: "bg-white border-slate-300",
+  green: "bg-emerald-300 border-emerald-400",
+  yellow: "bg-yellow-300 border-yellow-400",
+  red: "bg-red-300 border-red-400",
+  gray: "bg-slate-300 border-slate-400",
 };
 
 export function TaskModal({ task, isOpen, onClose, onSave }: TaskModalProps) {
@@ -39,6 +54,7 @@ export function TaskModal({ task, isOpen, onClose, onSave }: TaskModalProps) {
         category: task.category,
         tags: task.tags,
         status: task.status,
+        color: task.color ?? "white",
       });
       setTagText(task.tags.join(", "));
     } else {
@@ -93,8 +109,8 @@ export function TaskModal({ task, isOpen, onClose, onSave }: TaskModalProps) {
           </button>
         </header>
 
-        <div className="grid grid-cols-2 gap-4 px-6 py-5">
-          <label className="col-span-2 block">
+        <div className="grid grid-cols-1 gap-4 px-6 py-5 sm:grid-cols-2">
+          <label className="block sm:col-span-2">
             <span className="mb-1 block text-xs font-semibold text-slate-600">
               タスク名
             </span>
@@ -106,7 +122,7 @@ export function TaskModal({ task, isOpen, onClose, onSave }: TaskModalProps) {
             />
           </label>
 
-          <label className="col-span-2 block">
+          <label className="block sm:col-span-2">
             <span className="mb-1 block text-xs font-semibold text-slate-600">
               説明
             </span>
@@ -189,6 +205,36 @@ export function TaskModal({ task, isOpen, onClose, onSave }: TaskModalProps) {
               ))}
             </select>
           </label>
+
+          <div className="block sm:col-span-2">
+            <span className="mb-1 block text-xs font-semibold text-slate-600">
+              カード色
+            </span>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+              {TASK_COLORS.map((color) => {
+                const isSelected = (values.color ?? "white") === color.value;
+
+                return (
+                  <button
+                    className={`flex h-11 items-center justify-center gap-1 rounded-md border text-sm font-semibold transition sm:h-10 ${
+                      isSelected
+                        ? "border-blue-500 bg-blue-50 text-blue-700 ring-2 ring-blue-100"
+                        : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                    }`}
+                    key={color.value}
+                    type="button"
+                    onClick={() => setField("color", color.value)}
+                  >
+                    <span
+                      className={`h-4 w-4 rounded-full border ${colorSwatchClasses[color.value]}`}
+                      aria-hidden="true"
+                    />
+                    {color.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </div>
 
         <footer className="flex items-center justify-between border-t border-slate-200 px-6 py-4">
