@@ -1,4 +1,4 @@
-import type { Task, TaskPriority } from "../types/task";
+import type { Task, TaskColor, TaskPriority } from "../types/task";
 import { getDaysUntilDue } from "./date";
 
 export type TaskVisualState = "overdue" | "soon" | "done" | "hold" | "normal";
@@ -32,16 +32,23 @@ export const getPriorityLineClass = (priority: TaskPriority): string => {
   return classes[priority];
 };
 
+const getTaskColorClasses = (color: TaskColor | undefined): string => {
+  const classes: Record<TaskColor, string> = {
+    white: "border-slate-200 bg-white",
+    green: "border-emerald-200 bg-emerald-50",
+    yellow: "border-yellow-200 bg-yellow-50",
+    red: "border-red-200 bg-red-50",
+    gray: "border-slate-200 bg-slate-100",
+  };
+  return classes[color ?? "white"];
+};
+
 export const getTaskCardClasses = (task: Task): string => {
   const state = getTaskVisualState(task);
-  const classes: Record<TaskVisualState, string> = {
-    overdue: "border-red-200 bg-red-50/80",
-    soon: "border-orange-200 bg-orange-50/80",
-    done: "border-slate-200 bg-slate-50 text-slate-500",
-    hold: "border-slate-200 bg-slate-100/80 text-slate-500",
-    normal: "border-slate-200 bg-white",
-  };
-  return classes[state];
+  if (state === "done" || state === "hold") {
+    return "border-slate-200 bg-slate-100/80 text-slate-500";
+  }
+  return getTaskColorClasses(task.color);
 };
 
 export const getTaskLineClass = (task: Task): string => {
