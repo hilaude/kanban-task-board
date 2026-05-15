@@ -1,0 +1,17 @@
+node_modules
+dist
+dist-ssr
+*.local
+.env
+.env.*
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
+
+.npm-cache/
+.codex-git-index*
+*.tsbuildinfo
+
+# Local design references and temporary helper scripts are not part of the app.
+claude/
+scripts/
