@@ -31,8 +31,8 @@ const statusOrder: Record<Task["status"], number> = {
   todo: 1,
   doing: 2,
   waiting: 3,
-  done: 4,
-  hold: 5,
+  hold: 4,
+  done: 5,
 };
 
 const priorityOrder: Record<Task["priority"], number> = {

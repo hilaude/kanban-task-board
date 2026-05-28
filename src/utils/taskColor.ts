@@ -35,19 +35,15 @@ export const getPriorityLineClass = (priority: TaskPriority): string => {
 const getTaskColorClasses = (color: TaskColor | undefined): string => {
   const classes: Record<TaskColor, string> = {
     white: "border-slate-200 bg-white",
-    green: "border-emerald-200 bg-emerald-50",
-    yellow: "border-yellow-200 bg-yellow-50",
-    red: "border-red-200 bg-red-50",
-    gray: "border-slate-200 bg-slate-100",
+    green: "border-emerald-300 bg-emerald-100",
+    yellow: "border-yellow-300 bg-yellow-100",
+    red: "border-red-300 bg-red-100",
+    gray: "border-slate-300 bg-slate-200",
   };
   return classes[color ?? "white"];
 };
 
 export const getTaskCardClasses = (task: Task): string => {
-  const state = getTaskVisualState(task);
-  if (state === "done" || state === "hold") {
-    return "border-slate-200 bg-slate-100/80 text-slate-500";
-  }
   return getTaskColorClasses(task.color);
 };
 

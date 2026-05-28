@@ -59,8 +59,8 @@ export const TASK_STATUSES: Array<{ value: TaskStatus; label: string }> = [
   { value: "todo", label: "未着手" },
   { value: "doing", label: "対応中" },
   { value: "waiting", label: "確認待ち" },
-  { value: "done", label: "完了" },
   { value: "hold", label: "保留" },
+  { value: "done", label: "完了" },
 ];
 
 export const TASK_PRIORITIES: Array<{ value: TaskPriority; label: string }> = [
