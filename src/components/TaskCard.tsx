@@ -53,11 +53,11 @@ export function TaskCard({
         aria-hidden="true"
       />
 
-      <div className="mb-2 flex items-start justify-between gap-2">
+      <div className="mb-2 space-y-2">
         <h3 className="line-clamp-2 text-sm font-semibold leading-5 text-slate-900">
           {task.title}
         </h3>
-        <div className="flex shrink-0 items-center gap-1 opacity-80 transition group-hover:opacity-100">
+        <div className="flex flex-wrap items-center gap-1 opacity-80 transition group-hover:opacity-100">
           <button
             className="rounded border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50"
             type="button"
