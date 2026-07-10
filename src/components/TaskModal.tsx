@@ -64,6 +64,16 @@ export function TaskModal({ task, isOpen, onClose, onSave }: TaskModalProps) {
     setError("");
   }, [isOpen, task]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const setField = <K extends keyof TaskFormValues>(
@@ -93,7 +103,12 @@ export function TaskModal({ task, isOpen, onClose, onSave }: TaskModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/35 px-6">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/35 px-6"
+      onClick={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
       <form
         className="w-full max-w-3xl rounded-xl bg-white shadow-2xl"
         onSubmit={submit}

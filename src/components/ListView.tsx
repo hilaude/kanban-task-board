@@ -1,9 +1,9 @@
 import { useMemo, useState } from "react";
 import type { Task } from "../types/task";
 import { TASK_STATUSES } from "../types/task";
-import { formatJapaneseDate, getDaysUntilDue } from "../utils/date";
 import {
   getDueBadgeClass,
+  getDueText,
   getPriorityLabel,
   getTaskVisualState,
 } from "../utils/taskColor";
@@ -136,19 +136,6 @@ const getRowClass = (task: Task): string => {
     return "bg-slate-50/80 text-slate-500 hover:bg-slate-100";
   }
   return "bg-white hover:bg-slate-50";
-};
-
-const getDueText = (task: Task): string => {
-  const days = getDaysUntilDue(task.dueDate);
-  const date = formatJapaneseDate(task.dueDate);
-  const state = getTaskVisualState(task);
-
-  if (state === "done") return `${date} 完了`;
-  if (state === "hold") return `${date} 保留`;
-  if (days === null) return date;
-  if (days < 0) return `${date} 期限切れ`;
-  if (days <= 3) return `${date} あと${days}日`;
-  return date;
 };
 
 export function ListView({

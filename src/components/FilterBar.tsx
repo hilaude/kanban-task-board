@@ -37,7 +37,7 @@ export function FilterBar({
         name="query"
         value={filters.query}
         onChange={update}
-        placeholder="タスク名で検索"
+        placeholder="タスク名・説明・タグで検索"
       />
 
       <select

@@ -1,5 +1,5 @@
 import type { Task, TaskColor, TaskPriority } from "../types/task";
-import { getDaysUntilDue } from "./date";
+import { formatJapaneseDate, getDaysUntilDue } from "./date";
 
 export type TaskVisualState = "overdue" | "soon" | "done" | "hold" | "normal";
 
@@ -53,6 +53,20 @@ export const getTaskLineClass = (task: Task): string => {
   if (state === "soon") return "bg-orange-500";
   if (state === "done" || state === "hold") return "bg-slate-400";
   return getPriorityLineClass(task.priority);
+};
+
+export const getDueText = (task: Task): string => {
+  const state = getTaskVisualState(task);
+  const days = getDaysUntilDue(task.dueDate);
+  const date = formatJapaneseDate(task.dueDate);
+
+  if (state === "done") return `${date} 完了`;
+  if (state === "hold") return `${date} 保留`;
+  if (days === null) return date;
+  if (days < 0) return `${date} 期限切れ`;
+  if (days === 0) return `${date} 今日`;
+  if (days <= 3) return `${date} あと${days}日`;
+  return date;
 };
 
 export const getDueBadgeClass = (task: Task): string => {

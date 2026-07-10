@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { DragEvent } from "react";
 import type { Task, TaskStatus } from "../types/task";
 import { TaskCard } from "./TaskCard";
@@ -23,21 +24,35 @@ export function Column({
   onArchive,
   onDropTask,
 }: ColumnProps) {
+  const [isDragOver, setIsDragOver] = useState(false);
+
   const allowDrop = (event: DragEvent<HTMLDivElement>) => {
     event.preventDefault();
     event.dataTransfer.dropEffect = "move";
+    setIsDragOver(true);
+  };
+
+  const leaveDrop = (event: DragEvent<HTMLDivElement>) => {
+    if (event.currentTarget.contains(event.relatedTarget as Node)) return;
+    setIsDragOver(false);
   };
 
   const dropTask = (event: DragEvent<HTMLDivElement>) => {
     event.preventDefault();
+    setIsDragOver(false);
     const taskId = event.dataTransfer.getData("text/plain");
     if (taskId) onDropTask(taskId, status);
   };
 
   return (
     <section
-      className="flex h-full w-[288px] shrink-0 flex-col rounded-lg border border-slate-200 bg-slate-100/80"
+      className={`flex h-full w-[288px] shrink-0 flex-col rounded-lg border transition ${
+        isDragOver
+          ? "border-blue-400 bg-blue-50/80 ring-2 ring-blue-200"
+          : "border-slate-200 bg-slate-100/80"
+      }`}
       onDragOver={allowDrop}
+      onDragLeave={leaveDrop}
       onDrop={dropTask}
     >
       <header className="flex items-center justify-between border-b border-slate-200 px-3 py-3">

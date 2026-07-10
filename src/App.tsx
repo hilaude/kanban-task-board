@@ -16,6 +16,7 @@ import type {
   TaskStatus,
   ViewMode,
 } from "./types/task";
+import { toDateInputValue } from "./utils/date";
 import {
   loadArchiveViewMode,
   loadTasks,
@@ -128,7 +129,12 @@ function App() {
   const filteredTasks = useMemo(() => {
     const query = filters.query.trim().toLowerCase();
     return archiveScopedTasks.filter((task) => {
-      const matchesQuery = !query || task.title.toLowerCase().includes(query);
+      const matchesQuery =
+        !query ||
+        task.title.toLowerCase().includes(query) ||
+        task.description.toLowerCase().includes(query) ||
+        task.category.toLowerCase().includes(query) ||
+        task.tags.some((tag) => tag.toLowerCase().includes(query));
       const matchesPriority =
         filters.priority === "all" || task.priority === filters.priority;
       const matchesCategory =
@@ -280,6 +286,18 @@ function App() {
     }
   };
 
+  const exportTasks = () => {
+    const blob = new Blob([JSON.stringify(tasks, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `kanban-tasks-${toDateInputValue(new Date())}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   const logout = async () => {
     if (!supabase) return;
     const { error } = await supabase.auth.signOut();
@@ -375,6 +393,14 @@ function App() {
                 タスク追加
               </button>
             )}
+            <button
+              className="h-9 rounded-md border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+              type="button"
+              onClick={exportTasks}
+              title="現在のタスクをJSONファイルとして保存します"
+            >
+              バックアップ
+            </button>
             <button
               className="h-9 rounded-md border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
               type="button"

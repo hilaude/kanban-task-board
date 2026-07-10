@@ -55,7 +55,13 @@ export function AuthPanel({ onError }: AuthPanelProps) {
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-slate-50 px-5 py-8">
-      <section className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+      <form
+        className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
+        onSubmit={(event) => {
+          event.preventDefault();
+          void submit();
+        }}
+      >
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-slate-950">
             Kanban Task Board
@@ -124,9 +130,8 @@ export function AuthPanel({ onError }: AuthPanelProps) {
 
         <button
           className="h-12 w-full rounded-md bg-blue-600 px-4 text-base font-bold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-300"
-          type="button"
+          type="submit"
           disabled={isSubmitting || Boolean(supabaseConfigError)}
-          onClick={submit}
         >
           {isSubmitting ? "処理中..." : mode === "login" ? "ログイン" : "登録する"}
         </button>
@@ -136,7 +141,7 @@ export function AuthPanel({ onError }: AuthPanelProps) {
             {message}
           </p>
         )}
-      </section>
+      </form>
     </main>
   );
 }

@@ -1,12 +1,11 @@
 import type { DragEvent } from "react";
 import type { Task } from "../types/task";
-import { formatJapaneseDate, getDaysUntilDue } from "../utils/date";
 import {
   getDueBadgeClass,
+  getDueText,
   getPriorityLabel,
   getTaskCardClasses,
   getTaskLineClass,
-  getTaskVisualState,
 } from "../utils/taskColor";
 
 type TaskCardProps = {
@@ -15,19 +14,6 @@ type TaskCardProps = {
   onDelete: (taskId: string) => void;
   onDuplicate: (taskId: string) => void;
   onArchive: (taskId: string) => void;
-};
-
-const dueText = (task: Task): string => {
-  const state = getTaskVisualState(task);
-  const days = getDaysUntilDue(task.dueDate);
-  const date = formatJapaneseDate(task.dueDate);
-
-  if (state === "done") return `${date} 完了`;
-  if (state === "hold") return `${date} 保留`;
-  if (days === null) return date;
-  if (days < 0) return `${date} 期限切れ`;
-  if (days <= 3) return `${date} あと${days}日`;
-  return date;
 };
 
 export function TaskCard({
@@ -108,7 +94,7 @@ export function TaskCard({
         <span
           className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ${getDueBadgeClass(task)}`}
         >
-          {dueText(task)}
+          {getDueText(task)}
         </span>
         <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600 ring-1 ring-slate-200">
           優先度 {getPriorityLabel(task.priority)}
